@@ -1,3 +1,5 @@
+import random
+
 import agent
 ai_piece = 'O'
 human_piece = 'X'
@@ -41,34 +43,23 @@ def ai_play(col):
             return True
     return False
 
+
 def check_win(piece):
-   ROW_COUNT = len(board)
-   COLUMN_COUNT = len(board[0])
-   # Check horizontal locations
-   for r in range(ROW_COUNT):
-       for c in range(COLUMN_COUNT - 3):
-           if (board[r][c] == piece and board[r][c + 1] == piece and
-               board[r][c + 2] == piece and board[r][c + 3] == piece):
-               return True
-   # Check vertical locations
-   for r in range(ROW_COUNT - 3):
-       for c in range(COLUMN_COUNT):
-           if (board[r][c] == piece and board[r + 1][c] == piece and
-               board[r + 2][c] == piece and board[r + 3][c] == piece):
-               return True
-   # Check positively sloped diagonals
-   for r in range(ROW_COUNT - 3):
-       for c in range(COLUMN_COUNT - 3):
-           if (board[r][c] == piece and board[r + 1][c + 1] == piece and
-               board[r + 2][c + 2] == piece and board[r + 3][c + 3] == piece):
-               return True
-   # Check negatively sloped diagonals
-   for r in range(3, ROW_COUNT):
-       for c in range(COLUMN_COUNT - 3):
-           if (board[r][c] == piece and board[r - 1][c + 1] == piece and
-               board[r - 2][c + 2] == piece and board[r - 3][c + 3] == piece):
-               return True
-   return False
+    # Check horizontal, vertical, and diagonals for a specific piece
+    rows, cols = 6, 7
+    for r in range(rows):
+        for c in range(cols - 3):
+            if all(board[r][c + i] == piece for i in range(4)): return True
+    for r in range(rows - 3):
+        for c in range(cols):
+            if all(board[r + i][c] == piece for i in range(4)): return True
+    for r in range(rows - 3):
+        for c in range(cols - 3):
+            if all(board[r + i][c + i] == piece for i in range(4)): return True
+    for r in range(3, rows):
+        for c in range(cols - 3):
+            if all(board[r - i][c + i] == piece for i in range(4)): return True
+    return False
 
 def main():
     while True:
@@ -80,7 +71,20 @@ def main():
             print_board()
             col = int(input())
         play_column(col)
+        if check_win(ai_piece):
+            print("AI Wins")
+            print_board()
+            break
+        if check_win(human_piece):
+            print("Human Wins")
+            print_board()
+            break
+        if (move_count == 42):
+            print("Tie Game")
+            print_board()
+            break
         ai_play(ai.play(board, move_count))
+
 
         if check_win(ai_piece):
             print("AI Wins")

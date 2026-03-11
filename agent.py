@@ -1,88 +1,77 @@
 import copy
 
 
-
-
-
-
-
-
 class Agent:
+    def __init__(self, agent_piece, player_piece):
+        self.ai = agent_piece
+        self.human = player_piece
 
-
-    def __init__(self, agent, player):
-        self.ai = agent
-        self.human = player
-
-    def check_winning_move(board):
-        global ai
-        ROW_COUNT = len(board)
-        COLUMN_COUNT = len(board[0])
-        # Check horizontal locations
-        for r in range(ROW_COUNT):
-            for c in range(COLUMN_COUNT - 3):
-                if (board[r][c] == ai and board[r][c + 1] == ai and
-                        board[r][c + 2] == ai and board[r][c + 3] == ai):
-                    return True
-        # Check vertical locations
-        for r in range(ROW_COUNT - 3):
-            for c in range(COLUMN_COUNT):
-                if (board[r][c] == ai and board[r + 1][c] == ai and
-                        board[r + 2][c] == ai and board[r + 3][c] == ai):
-                    return True
-        # Check positively sloped diagonals
-        for r in range(ROW_COUNT - 3):
-            for c in range(COLUMN_COUNT - 3):
-                if (board[r][c] == ai and board[r + 1][c + 1] == ai and
-                        board[r + 2][c + 2] == ai and board[r + 3][c + 3] == ai):
-                    return True
-        # Check negatively sloped diagonals
-        for r in range(3, ROW_COUNT):
-            for c in range(COLUMN_COUNT - 3):
-                if (board[r][c] == ai and board[r - 1][c + 1] == ai and
-                        board[r - 2][c + 2] == ai and board[r - 3][c + 3] == ai):
-                    return True
+    def is_winner(self, board, piece):
+        # Check horizontal, vertical, and diagonals for a specific piece
+        rows, cols = 6, 7
+        for r in range(rows):
+            for c in range(cols - 3):
+                if all(board[r][c+i] == piece for i in range(4)): return True
+        for r in range(rows - 3):
+            for c in range(cols):
+                if all(board[r+i][c] == piece for i in range(4)): return True
+        for r in range(rows - 3):
+            for c in range(cols - 3):
+                if all(board[r+i][c+i] == piece for i in range(4)): return True
+        for r in range(3, rows):
+            for c in range(cols - 3):
+                if all(board[r-i][c+i] == piece for i in range(4)): return True
         return False
 
-    def can_play_column(self, state, col):
-        for i in range(6):
-            if state[i][col] == ' ':
-                return True
-        return False
+    def get_valid_locations(self, board):
+        return [c for c in range(7) if board[0][c] == ' ']
 
-    def move_score(self, state, col, move_count):
-        if move_count >= 42:
-            return 0
-        for i in range(7):
-            if self.can_play_column(state, i):
-                for j in range(5,-1,-1):
-                    if state[j][i] == ' ':
-                        state[j][i] = self.ai
-                        break
-                if self.check_winning_move(state):
-                    return (43 - move_count)/2
+    def get_next_open_row(self, board, col):
+        for r in range(5, -1, -1):
+            if board[r][col] == ' ':
+                return r
 
-        best_score = -42
+    def minimax(self, board, depth, alpha, beta, maximizingPlayer):
+        valid_locations = self.get_valid_locations(board)
+        is_terminal = self.is_winner(board, self.ai) or self.is_winner(board, self.human) or len(valid_locations) == 0
 
+        if depth == 0 or is_terminal:
+            if is_terminal:
+                if self.is_winner(board, self.ai): return (None, 10000000)
+                elif self.is_winner(board, self.human): return (None, -10000000)
+                else: return (None, 0) # Draw
+            else: return (None, 0)
 
-        return None
+        if maximizingPlayer:
+            value = -float('inf')
+            column = valid_locations[0]
+            for col in valid_locations:
+                row = self.get_next_open_row(board, col)
+                temp_board = copy.deepcopy(board)
+                temp_board[row][col] = self.ai
+                new_score = self.minimax(temp_board, depth - 1, alpha, beta, False)[1]
+                if new_score > value:
+                    value = new_score
+                    column = col
+                alpha = max(alpha, value)
+                if alpha >= beta: break
+            return column, value
 
+        else: # Minimizing player
+            value = float('inf')
+            column = valid_locations[0]
+            for col in valid_locations:
+                row = self.get_next_open_row(board, col)
+                temp_board = copy.deepcopy(board)
+                temp_board[row][col] = self.human
+                new_score = self.minimax(temp_board, depth - 1, alpha, beta, True)[1]
+                if new_score < value:
+                    value = new_score
+                    column = col
+                beta = min(beta, value)
+                if alpha >= beta: break
+            return column, value
 
     def play(self, state, move_count):
-        board_copy = copy.deepcopy(state)
-        if move_count >= 42:
-            return 0
-        best_score = 0
-        index = -1
-        for i in range(7):
-            if self.can_play_column(state, i):
-                for j in range(5,-1,-1):
-                    if board_copy[j][i] == ' ':
-                        board_copy[j][i] = self.ai
-                        break
-                new_score = self.move_score(board_copy, i, move_count + 1)
-                if new_score > best_score:
-                    best_score = new_score
-                    index = i
-
-        return index
+        col, score = self.minimax(state, 10, -float('inf'), float('inf'), True)
+        return col
